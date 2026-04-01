@@ -352,7 +352,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#101828;font-family:
 <div class="p4-hero"><img src="assets/heroes_bust/bust2.png" alt=""><div class="p4-glow"></div></div>
 <div class="p4-info">
   <div class="p4-tr"><div class="p4-kda"><span class="k">6</span>/<span class="d">3</span>/<span class="a">8</span></div><div class="p4-prof"><div class="p4-prof-f" id="profF"></div></div><div class="p4-set">&#9881;</div></div>
-  <div class="p4-score-row" style="cursor:pointer"><div class="p4-score" id="p4S">10.6</div><div class="p4-pct" id="p4P">前 12%</div><div class="p4-view-btn" onclick="showSDfromP4(event)">查看</div><div class="p4-medal" id="p4M"><img class="ir" id="p4MedalImg" src="assets/medals/铁牌中路.png"><img class="ab" src="assets/ability/分路_铜.png"><img class="ab" src="assets/ability/操作_铜.png"><img class="ab" src="assets/ability/团队_铜.png"></div></div>
+  <div class="p4-score-row" style="cursor:pointer"><div class="p4-score" id="p4S" onclick="showSDfromP4(event)">10.6</div><div class="p4-pct" id="p4P" onclick="showSDfromP4(event)">前 12%</div><div class="p4-view-btn" onclick="showSDfromP4(event)">查看</div><div class="p4-medal" id="p4M" onclick="showSDfromP4(event)" style="cursor:pointer"><img class="ir" id="p4MedalImg" src="assets/medals/铁牌中路.png"><img class="ab" src="assets/ability/分路_铜.png"><img class="ab" src="assets/ability/操作_铜.png"><img class="ab" src="assets/ability/团队_铜.png"></div></div>
   <div class="p4-quests" id="p4Quests">
     <div class="p4-tags-row" id="p4TagsRow">
       <div class="p4-tg2 tg" id="ptg1">绝对火力</div>
@@ -675,10 +675,10 @@ function showSDfromP4(e){
   var p=BT[1]; // me player
   var k=P4_KEY;
   var sd=SD_DATA[k];
-  ov.innerHTML=buildSDContent(p,k,sd);
+  ov.innerHTML=buildSDContent(p,'p4_'+k,sd);
   ov.classList.add('show');
   ov.onclick=function(ev){if(ev.target===ov)ov.classList.remove('show')};
-  setTimeout(function(){var cv=document.getElementById('sdCanvas_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
+  setTimeout(function(){var cv=document.getElementById('sdCanvas_p4_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
 }
 function showSDfromP6(k,e){
   e.stopPropagation();
@@ -687,10 +687,10 @@ function showSDfromP6(k,e){
   var idx=parseInt(k.charAt(1));
   var p=isBT?BT[idx]:RT[idx];
   var sd=SD_DATA[k];
-  ov.innerHTML=buildSDContent(p,k,sd);
+  ov.innerHTML=buildSDContent(p,'p6_'+k,sd);
   ov.classList.add('show');
   ov.onclick=function(ev){if(ev.target===ov)ov.classList.remove('show')};
-  setTimeout(function(){var cv=document.getElementById('sdCanvas_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
+  setTimeout(function(){var cv=document.getElementById('sdCanvas_p6_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
 }
 function closeSD(el){el.closest('.sd-ov').classList.remove('show')}
 
