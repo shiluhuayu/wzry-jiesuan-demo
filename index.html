@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>王者荣耀结算Demo V3</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#101828;font-family:'PingFang SC','Microsoft YaHei',sans-serif;color:#fff;user-select:none;display:flex;justify-content:center;align-items:center;flex-direction:column}
+
+.mode-bar{display:flex;gap:6px;margin-bottom:6px;z-index:300}
+.mode-btn{padding:4px 12px;border-radius:14px;font-size:10px;cursor:pointer;background:rgba(255,255,255,.04);color:rgba(200,220,240,.4);border:1px solid rgba(255,255,255,.06);transition:all .2s;letter-spacing:1px}
+.mode-btn.active{background:rgba(79,195,247,.15);color:#4FC3F7;border-color:rgba(79,195,247,.3)}
+.mode-btn:hover{background:rgba(255,255,255,.08)}
+
+.outer-wrap{display:flex;flex-direction:column;align-items:center;gap:6px}
+.page-indicator-outer{font-size:11px;color:rgba(200,220,240,.45);letter-spacing:2px;height:18px}
+.phone-frame{width:852px;height:393px;border-radius:44px;border:3px solid #444;background:#000;position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.8)}
+.phone-notch{position:absolute;left:0;top:50%;transform:translateY(-50%);width:28px;height:120px;background:#000;border-radius:0 16px 16px 0;z-index:200}
+.phone-home{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:4px;height:120px;background:rgba(255,255,255,.25);border-radius:3px;z-index:200}
+.nav-dots-outer{display:flex;gap:10px;height:20px;align-items:center}
+.ndot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.15);cursor:pointer;transition:all .3s;border:1px solid rgba(255,255,255,.06)}
+.ndot.active{background:rgba(100,200,255,.7);transform:scale(1.3);border-color:rgba(100,200,255,.4)}
+.page{position:absolute;inset:0;display:none;opacity:0;flex-direction:column}
+.page.active{display:flex;opacity:1}
+
+.cbtn{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);padding:5px 26px;border-radius:14px;background:rgba(255,255,255,.03);color:rgba(255,255,255,.25);font-size:10px;font-weight:600;letter-spacing:3px;cursor:pointer;z-index:50;border:1px solid rgba(255,255,255,.05);transition:all .3s}
+.cbtn:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+
+/* === P1 === */
+#p1{justify-content:center;align-items:center;background:linear-gradient(180deg,#162840 0%,#0c1a30 50%,#081020 100%);overflow:hidden}
+.p1-bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 55%,rgba(40,100,180,.25),transparent 60%)}
+.p1-victory-img{position:relative;z-index:3;max-height:450px;object-fit:contain;opacity:0;filter:drop-shadow(0 0 30px rgba(60,180,255,.3))}
+/* Text */
+.p1-text{position:relative;z-index:4;text-align:center;opacity:0;margin-top:-20px}
+.p1-cn{font-size:48px;font-weight:900;background:linear-gradient(180deg,#FFE8B0 0%,#D4A544 35%,#B8862D 65%,#8B6914 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 12px rgba(180,130,40,.6));letter-spacing:16px}
+.p1-en{font-size:12px;color:rgba(200,180,140,.45);letter-spacing:10px;margin-top:3px}
+/* Bottom light beam */
+.p1-beam{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);width:0;height:2px;background:linear-gradient(90deg,transparent,rgba(60,200,255,.4),rgba(100,220,255,.6),rgba(60,200,255,.4),transparent);box-shadow:0 0 15px rgba(60,200,255,.2)}
+/* Particles */
+.p1-particle{position:absolute;width:2px;height:2px;background:rgba(100,200,255,.7);border-radius:50%}
+
+/* === P2 === */
+#p2{justify-content:center;align-items:center;background:#000;overflow:hidden}
+.hl-area{position:relative;width:100%;height:100%;display:flex;justify-content:center;align-items:center}
+.hl-video{width:100%;height:100%;object-fit:contain}
+.hl-banner{position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:10;opacity:0}
+.hl-label{font-size:16px;color:#ff4444;font-weight:900;letter-spacing:4px;text-shadow:0 0 20px rgba(255,50,50,.5)}
+
+/* === P3 === */
+#p3{flex-direction:column;align-items:center;justify-content:center;overflow:hidden;padding:2px 26px 30px;position:absolute;inset:0;background:#0b1525 !important}
+.t-bg{display:none}
+.t-ov{display:none}
+.t-row{display:flex;justify-content:center;align-items:flex-end;gap:3px;width:100%;z-index:2}
+
+.tc{display:flex;flex-direction:column;align-items:center;width:128px;position:relative;opacity:0}
+.tc.is-me .tc-bust{width:155px;height:195px}
+.tc.is-mvp .tc-bust{border:2px solid rgba(255,215,0,.4);box-shadow:0 0 16px rgba(255,215,0,.12)}
+.tc-medal-top{display:flex;justify-content:center;min-height:36px;margin-bottom:-3px;z-index:5}
+.tc-medal-top img{height:38px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+.tc-bust{width:116px;height:165px;border-radius:10px;overflow:hidden;position:relative;background:#0d1020}
+.tc-bust img{width:100%;height:100%;object-fit:cover}
+.tc-mvp{position:absolute;top:3px;right:3px;background:linear-gradient(135deg,#FFD700,#FF8C00);color:#000;font-size:7px;font-weight:900;padding:1px 5px;border-radius:6px}
+.tc-bot{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:2px;z-index:2;min-height:54px}
+.tc-ava{width:20px;height:20px;border-radius:50%;background:#2a2a3e;display:flex;justify-content:center;align-items:center;font-size:12px;border:1px solid rgba(255,255,255,.15)}
+.tc-nm{font-size:7px;color:rgba(255,255,255,.55)}
+.tc-tags{display:flex;gap:2px;flex-wrap:wrap;justify-content:center}
+.tc-tg{padding:1px 3px;border-radius:5px;font-size:6px;font-weight:700;white-space:nowrap}
+.tc-tg.tg{background:rgba(255,200,50,.12);border:1px solid rgba(255,200,50,.3);color:rgba(255,210,80,.9)}
+.tc-tg.tb{background:rgba(100,180,255,.1);border:1px solid rgba(100,180,255,.2);color:rgba(150,210,255,.85)}
+.tc-tg.tgr{background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.2);color:rgba(129,199,132,.85)}
+.tc-act{height:26px;display:flex;align-items:center;justify-content:center;position:relative;margin-top:1px}
+.tc-lb{width:24px;height:24px;border-radius:50%;background:rgba(60,120,200,.15);border:1.5px solid rgba(100,180,255,.25);display:flex;justify-content:center;align-items:center;cursor:pointer;transition:all .2s}
+.tc-lb svg{width:12px;height:12px;fill:none;stroke:rgba(100,180,255,.6);stroke-width:2}
+.tc-lb.liked{background:rgba(79,195,247,.2);border-color:rgba(79,195,247,.4)}
+.tc-lb.liked svg{fill:rgba(79,195,247,.7);stroke:rgba(79,195,247,.8)}
+.tc-pop{position:absolute;top:-12px;font-size:9px;font-weight:700;opacity:0;pointer-events:none}
+.tc-sl{width:24px;height:24px;border-radius:50%;background:rgba(200,170,100,.15);border:1.5px solid rgba(200,170,100,.35);display:none;justify-content:center;align-items:center;cursor:pointer;font-size:6px;color:rgba(255,230,160,.85);font-weight:700}
+.tc-rsp{display:none;font-size:7px;font-weight:900;color:rgba(255,215,0,.85);letter-spacing:1px}
+
+/* === P4 === */
+#p4{flex-direction:row;justify-content:center;align-items:center;background:linear-gradient(135deg,#0a1628,#0d1020);overflow:hidden;padding:8px 40px 38px;gap:14px}
+.p4-hero{width:200px;height:100%;display:flex;justify-content:center;align-items:center;position:relative;flex-shrink:0}
+.p4-hero img{height:290px;object-fit:contain;border-radius:12px;filter:drop-shadow(0 0 20px rgba(100,150,220,.25))}
+.p4-glow{position:absolute;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(100,150,220,.1),transparent);bottom:8%;left:50%;transform:translateX(-50%)}
+.p4-info{flex:1;display:flex;flex-direction:column;gap:3px;max-width:520px;position:relative;max-height:310px;overflow:hidden}
+.p4-tr{position:absolute;top:2px;right:0;display:flex;align-items:center;gap:6px;z-index:5}
+.p4-kda{font-size:11px;color:rgba(200,220,240,.5)}
+.p4-kda .k{color:#4FC3F7}.p4-kda .d{color:#EF5350}.p4-kda .a{color:#81C784}
+.p4-prof{width:40px;height:3px;border-radius:2px;background:rgba(255,255,255,.06);overflow:hidden}
+.p4-prof-f{height:100%;border-radius:2px;background:linear-gradient(90deg,#4FC3F7,#7C4DFF);width:0%}
+.p4-set{width:16px;height:16px;border-radius:3px;background:rgba(100,160,220,.08);border:1px solid rgba(100,160,220,.1);display:flex;justify-content:center;align-items:center;font-size:8px;color:rgba(200,220,240,.25);cursor:pointer}
+
+.p4-score-row{display:flex;align-items:center;gap:6px;min-height:34px;flex-wrap:wrap;margin-top:16px}
+.p4-score{font-size:30px;font-weight:200;color:rgba(200,210,220,.6);opacity:0}
+.p4-pct{font-size:8px;padding:1px 6px;border-radius:8px;background:rgba(100,180,255,.08);border:1px solid rgba(100,180,255,.15);color:rgba(150,210,255,.7);opacity:0}
+.p4-medal{display:flex;align-items:center;gap:3px;opacity:0}
+.p4-medal .ir{height:36px}
+.p4-medal .ab{width:22px;height:22px;border-radius:50%}
+
+.p4-quests{display:flex;flex-direction:column;gap:4px;margin-top:6px}
+.p4-tags-row{display:flex;gap:6px;align-items:center;opacity:0}
+.p4-tg2{padding:5px 15px;border-radius:16px;font-size:13px;font-weight:700;cursor:default}
+.p4-tg2.tg{background:rgba(255,170,50,.15);border:1px solid rgba(255,170,50,.35);color:#FFB74D}
+.p4-tg2.tb{background:rgba(100,200,255,.1);border:1px solid rgba(100,200,255,.3);color:#64B5F6}
+.p4-tg2.tgr{background:rgba(76,175,80,.1);border:1px solid rgba(76,175,80,.3);color:#81C784}
+.p4-quest-divider{height:1px;background:rgba(255,255,255,.06);margin:4px 0 2px}
+.p4-quest-title{font-size:8px;color:rgba(200,210,220,.35);letter-spacing:2px;margin-bottom:2px}
+.p4-q{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:7px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.04);opacity:0}
+.p4-q-left{flex:1;display:flex;flex-direction:column;gap:1px}
+.p4-q-name{font-size:10px;font-weight:700;display:inline-block}
+.p4-q-name.tg{color:#FFB74D}
+.p4-q-name.tb{color:#64B5F6}
+.p4-q-name.tgr{color:#81C784}
+.p4-q-desc{font-size:7px;color:rgba(160,180,200,.4)}
+.p4-q-right{flex-shrink:0;display:flex;align-items:center}
+.p4-q-check{width:20px;height:20px;border-radius:50%;background:rgba(76,175,80,.15);border:1.5px solid rgba(76,175,80,.4);display:flex;justify-content:center;align-items:center;font-size:10px;color:#81C784;font-weight:700}
+.p4-q-bar{width:60px}
+.p4-q-track{height:4px;border-radius:2px;background:rgba(255,255,255,.05);overflow:hidden}
+.p4-q-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,#4FC3F7,#2196F3);width:0%;font-size:0;transition:width .8s}
+
+.p4-flash{display:flex;align-items:center;gap:6px;min-height:18px;margin-bottom:36px;flex-wrap:wrap}
+
+/* Newbie review panel */
+.p4-review{margin-top:4px;display:flex;flex-direction:column;gap:0}
+.p4-rv-section{display:flex;flex-direction:column;gap:3px}
+.p4-rv-title{font-size:9px;font-weight:700;color:rgba(200,220,240,.65);display:flex;align-items:center;gap:4px;margin-bottom:2px}
+.p4-rv-icon{width:16px;height:16px;border-radius:4px;display:flex;justify-content:center;align-items:center;font-size:9px;flex-shrink:0}
+.p4-rv-divider{height:1px;background:rgba(255,255,255,.04);margin:4px 0}
+.p4-rv-items{display:flex;flex-direction:column;gap:3px}
+.p4-rv-item{display:flex;gap:5px;align-items:flex-start;font-size:7px;color:rgba(200,210,220,.4);line-height:1.4}
+.p4-rv-badge{width:14px;height:14px;border-radius:3px;display:flex;justify-content:center;align-items:center;font-size:7px;font-weight:900;flex-shrink:0;margin-top:0}
+.p4-rv-badge.warn{background:rgba(255,180,50,.12);color:rgba(255,180,50,.8);border:1px solid rgba(255,180,50,.2)}
+.p4-rv-badge.danger{background:rgba(239,83,80,.1);color:rgba(239,83,80,.8);border:1px solid rgba(239,83,80,.2)}
+.p4-rv-badge.up{background:rgba(76,175,80,.1);color:#81C784;border:1px solid rgba(76,175,80,.2)}
+.p4-rv-badge.down{background:rgba(239,83,80,.08);color:rgba(239,83,80,.7);border:1px solid rgba(239,83,80,.15)}
+.p4-rv-text{flex:1}
+.p4-rv-bold{font-weight:700;color:rgba(200,220,240,.55)}
+.p4-rv-hl{background:rgba(255,180,50,.1);color:rgba(255,200,100,.8);padding:0 2px;border-radius:2px}
+.p4-fl{display:flex;align-items:center;gap:3px;font-size:7px;color:rgba(200,220,240,.45);opacity:0;padding:3px 6px;border-radius:10px;background:linear-gradient(90deg,rgba(15,30,60,.5),rgba(20,40,80,.25));border:1px solid rgba(60,100,160,.08);white-space:nowrap}
+.p4-fl-i{width:12px;height:12px;border-radius:50%;display:flex;justify-content:center;align-items:center;font-size:8px;flex-shrink:0}
+.p4-fl-label{font-size:6px;color:rgba(150,180,210,.3);margin-left:2px}
+
+.p4-bar{display:flex;justify-content:space-between;align-items:center;padding:5px 10px;border-radius:6px;background:linear-gradient(90deg,rgba(15,30,60,.7),rgba(20,40,80,.4));border:1px solid rgba(60,180,255,.1);position:relative;overflow:hidden;margin-top:auto}
+.p4-bar-l{display:flex;align-items:center;gap:4px;font-size:10px;color:rgba(200,220,240,.6)}
+.p4-bar-pts{font-size:12px;font-weight:700;color:#4FC3F7}
+.p4-bar-r{display:flex;align-items:center;gap:2px}
+.p4-bar-star{font-size:14px;color:#FFD700}
+.p4-bar-st{font-size:10px;font-weight:700;color:#FFD700}
+.p4-bar-track{position:absolute;bottom:0;left:0;right:0;height:3px;background:rgba(255,255,255,.03)}
+.p4-bar-gold{height:100%;width:0%;background:linear-gradient(90deg,#FFD700,#FFA000);box-shadow:0 0 6px rgba(255,215,0,.3)}
+
+/* Stream light effect for tag->score */
+.p4-view-btn{padding:2px 8px;border-radius:8px;font-size:8px;font-weight:600;color:rgba(79,195,247,.7);background:rgba(79,195,247,.08);border:1px solid rgba(79,195,247,.2);cursor:pointer;margin-left:4px;letter-spacing:1px;transition:all .2s;opacity:0}
+.p4-view-btn:hover{background:rgba(79,195,247,.15)}
+.p4-detail-btn{padding:3px 10px;border-radius:10px;font-size:8px;font-weight:600;color:rgba(200,170,100,.7);background:rgba(200,170,100,.06);border:1px solid rgba(200,170,100,.2);cursor:pointer;margin-left:auto;letter-spacing:1px;transition:all .2s;white-space:nowrap}
+.p4-detail-btn:hover{background:rgba(200,170,100,.12)}
+.stream-light{position:absolute;width:10px;height:10px;border-radius:50%;background:radial-gradient(circle,rgba(255,215,0,1),rgba(255,180,50,.6),transparent);box-shadow:0 0 20px rgba(255,215,0,.8),0 0 40px rgba(255,180,50,.5),0 0 60px rgba(255,150,30,.2);pointer-events:none;z-index:20}
+
+.p4-btns{position:absolute;bottom:2px;left:50%;transform:translateX(-50%);display:flex;gap:8px;z-index:50}
+.p4-b{padding:5px 28px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:2px;cursor:pointer;border:none}
+.p4-bc{background:rgba(30,70,140,.25);color:rgba(200,220,255,.65);border:1.5px solid rgba(100,180,255,.2)}
+.p4-bs{background:rgba(200,170,100,.25);color:rgba(255,230,160,.8);border:1.5px solid rgba(200,170,100,.3)}
+
+.share-ov{position:absolute;inset:0;background:rgba(0,0,0,.92);z-index:100;display:none;justify-content:center;align-items:center}
+.share-ov.show{display:flex}
+.share-ov img{max-width:90%;max-height:90%;object-fit:contain;border-radius:12px}
+.share-x{position:absolute;top:8px;right:12px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;justify-content:center;align-items:center;cursor:pointer;font-size:16px;color:rgba(255,255,255,.5);z-index:101}
+
+/* === P5 === */
+#p5{flex-direction:column;justify-content:flex-start;align-items:center;background:linear-gradient(180deg,#0a1a35,#0d2040,#0a1530) !important;overflow:hidden;padding:10px 20px 30px;position:absolute;inset:0}
+.r-meteors{position:absolute;inset:0;overflow:hidden}
+.r-m{position:absolute;width:2px;height:60px;background:linear-gradient(180deg,rgba(255,200,100,.8),transparent);border-radius:50%;opacity:0}
+.r5-title{font-size:14px;font-weight:300;color:rgba(200,210,230,.6);letter-spacing:6px;z-index:2;margin-bottom:4px}
+.r5-center{display:flex;flex-direction:column;align-items:center;z-index:2;flex:1;justify-content:center;gap:6px}
+.r5-badge{width:120px;height:120px;position:relative;display:flex;justify-content:center;align-items:center}
+.r5-badge-bg{position:absolute;inset:-10px;background:radial-gradient(ellipse at center,rgba(200,170,80,.08),transparent 70%)}
+.r5-badge-inner{width:100px;height:100px;background:linear-gradient(135deg,rgba(200,170,80,.2),rgba(160,130,60,.05));border:2px solid rgba(200,170,80,.35);border-radius:12px;display:flex;justify-content:center;align-items:center;box-shadow:0 0 30px rgba(200,170,80,.1),inset 0 0 20px rgba(200,170,80,.05);transform:rotate(45deg)}
+.r5-roman{font-size:28px;font-weight:300;color:rgba(220,200,140,.7);transform:rotate(-45deg)}
+.r5-stars{display:flex;gap:4px;margin-top:-4px}
+.r5-star{font-size:16px;opacity:0}
+.r5-star.gold{color:#FFD700}
+.r5-star.silver{color:rgba(180,190,210,.4)}
+.r5-star.small{font-size:10px}
+.r5-prog{width:180px;height:5px;border-radius:3px;background:rgba(255,255,255,.06);overflow:hidden}
+.r5-prog-f{height:100%;border-radius:3px;background:linear-gradient(90deg,#4FC3F7,#2196F3);width:0%}
+.r5-change{font-size:14px;font-weight:700;color:#FFD700;padding:3px 16px;border-radius:6px;background:rgba(255,215,0,.06);border:1px solid rgba(255,215,0,.12);letter-spacing:2px}
+.r5-bottom{display:flex;justify-content:space-between;width:100%;z-index:2;margin-top:auto}
+.r5-bl{display:flex;flex-direction:column;gap:3px}
+.r5-bl-row{display:flex;align-items:center;gap:4px;font-size:8px;color:rgba(200,210,220,.4)}
+.r5-bl-dot{color:rgba(200,210,220,.25)}
+.r5-bl-medal{height:16px;object-fit:contain}
+.r5-bl-pts{font-size:9px;font-weight:700;color:rgba(200,220,240,.6)}
+.r5-br{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+.r5-br-item{display:flex;align-items:center;gap:6px}
+.r5-br-icon{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,rgba(200,170,80,.2),rgba(160,130,60,.08));border:1px solid rgba(200,170,80,.2);display:flex;justify-content:center;align-items:center;font-size:12px;color:rgba(200,170,80,.6)}
+.r5-br-info{display:flex;flex-direction:column;align-items:flex-end;gap:0}
+.r5-br-label{font-size:7px;color:rgba(200,210,220,.35)}
+.r5-br-val{font-size:9px;color:rgba(200,220,240,.6)}
+.r5-br-val .grn{color:#81C784}
+
+/* Return mode overlays */
+.return-ov{position:absolute;inset:0;background:rgba(0,0,0,.85);z-index:85;display:none;justify-content:center;align-items:center}
+.return-ov.show{display:flex}
+.return-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 24px}
+.return-title{font-size:28px;font-weight:900;background:linear-gradient(180deg,#4FC3F7,#2196F3);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:8px;filter:drop-shadow(0 0 20px rgba(79,195,247,.3))}
+.return-badges{display:flex;align-items:center;gap:16px}
+.return-badge-col{display:flex;flex-direction:column;align-items:center}
+.return-btn-skip{padding:5px 20px;border-radius:4px;font-size:9px;background:transparent;color:rgba(200,220,240,.4);border:1px solid rgba(200,220,240,.15);cursor:pointer;letter-spacing:2px}
+.return-btn-accept{padding:5px 24px;border-radius:4px;font-size:9px;font-weight:700;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;border:none;cursor:pointer;letter-spacing:3px}
+.rankup-ov{position:absolute;inset:0;background:#000;z-index:86;display:none;justify-content:center;align-items:center}
+.rankup-ov.show{display:flex}
+
+/* === P6 === */
+#p6{flex-direction:column;align-items:center;background:linear-gradient(180deg,#0a1628,#0d1020);overflow-y:auto;overflow-x:hidden;padding:6px 28px 6px}
+.s6-hdr{display:flex;justify-content:center;align-items:center;width:100%;margin-bottom:2px}
+.s6-banner{display:flex;align-items:center;gap:8px}
+.s6-ts{font-size:18px;font-weight:900}
+.s6-ts.bl{color:#4FC3F7}.s6-ts.rd{color:#EF5350}
+.s6-vl{font-size:14px;font-weight:900;background:linear-gradient(180deg,#FFE4A0,#FFB830);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:3px}
+.s6-cols{display:flex;gap:8px;width:100%;flex:1;min-height:0}
+.s6-col{flex:1;display:flex;flex-direction:column;gap:1px;overflow-y:auto}
+/* Two-line row - horizontal layout */
+.sr6{display:flex;flex-direction:row;align-items:center;padding:3px 4px;border-radius:4px;margin-bottom:1px;min-height:58px;gap:0;position:relative}
+.sr6.bl{background:linear-gradient(90deg,rgba(30,60,120,.35),rgba(15,30,60,.08))}
+.sr6.rd{background:linear-gradient(90deg,rgba(120,30,30,.25),rgba(50,15,15,.06))}
+.sr6.me{border:1px solid rgba(100,180,255,.2);box-shadow:inset 0 0 8px rgba(100,180,255,.04)}
+.sr6-left{display:flex;align-items:center;gap:3px;flex-shrink:0}
+.sr6-av{width:34px;height:34px;border-radius:4px;overflow:hidden;flex-shrink:0;border:1px solid rgba(255,255,255,.08);position:relative}
+.sr6-av img{width:100%;height:100%;object-fit:cover}
+.sr6-av .mvp{position:absolute;top:-1px;left:-1px;background:linear-gradient(135deg,#FFD700,#FF8C00);color:#000;font-size:5px;font-weight:900;padding:0 2px;border-radius:0 0 2px 0}
+.sr6-medal-outer{flex-shrink:0;display:flex;align-items:center}
+.sr6-mid{position:absolute;left:calc(50% - 30px);transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;z-index:1;pointer-events:none}
+.sr6-mid *{pointer-events:auto}
+.sr6-nm{font-size:9px;color:rgba(200,220,240,.5);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:52px;text-align:center}
+.sr6-abs{display:flex;align-items:center;gap:2px;justify-content:center}
+.sr6-right{display:flex;flex-direction:column;gap:1px;flex-shrink:0;width:auto;margin-left:auto;margin-right:0}
+.sr6-r1{display:flex;align-items:center;gap:4px;justify-content:flex-end}
+.sr6-sc{font-size:10px;color:rgba(200,210,220,.5);min-width:22px;text-align:right;font-weight:600}
+.sr6-kda{font-size:9px;color:rgba(220,230,240,.5);white-space:nowrap;min-width:40px;text-align:right}
+.sr6-gold{font-size:9px;color:rgba(200,210,220,.5);min-width:28px;text-align:right}
+.sr6-r2{display:flex;align-items:center;gap:2px;justify-content:flex-end}
+.sr6-ab{width:14px;height:14px;border-radius:50%;object-fit:contain}
+.sr6-tg{padding:1px 4px;border-radius:4px;font-size:6px;font-weight:700;white-space:nowrap;cursor:pointer}
+.sr6-tg.sg{background:rgba(255,200,50,.08);border:1px solid rgba(255,200,50,.2);color:rgba(255,210,80,.8)}
+.sr6-tg.sb{background:rgba(100,180,255,.06);border:1px solid rgba(100,180,255,.15);color:rgba(150,210,255,.75)}
+.sr6-tg.sgr{background:rgba(76,175,80,.06);border:1px solid rgba(76,175,80,.15);color:rgba(129,199,132,.75)}
+.sr6-actions{display:flex;align-items:center;flex-shrink:0;margin-left:3px;position:relative}
+/* Particle burst for like/salute */
+.s6-particle{position:absolute;width:4px;height:4px;border-radius:50%;pointer-events:none;z-index:30}
+.s6-particle.blue{background:radial-gradient(circle,rgba(79,195,247,.9),rgba(79,195,247,.3));box-shadow:0 0 6px rgba(79,195,247,.6),0 0 12px rgba(79,195,247,.3)}
+.s6-particle.gold{background:radial-gradient(circle,rgba(255,215,0,.9),rgba(255,180,50,.3));box-shadow:0 0 6px rgba(255,215,0,.6),0 0 12px rgba(255,180,50,.3)}
+.s6-trail{position:absolute;width:2px;height:2px;border-radius:50%;pointer-events:none;z-index:29;opacity:.4}
+.sr6-md{height:21px;object-fit:contain}
+.sr6-ir{height:21px;object-fit:contain}
+.sr6-ab{width:14px;height:14px;border-radius:50%;object-fit:contain}
+/* Like/Salute/Respect buttons */
+.sr6-like{width:27px;height:27px;border-radius:50%;background:rgba(100,180,255,.05);border:1px solid rgba(100,180,255,.08);display:flex;justify-content:center;align-items:center;cursor:pointer;flex-shrink:0}
+.sr6-like svg{width:13px;height:13px;fill:none;stroke:rgba(100,180,255,.35);stroke-width:2}
+.sr6-like.liked{background:rgba(79,195,247,.15);border-color:rgba(79,195,247,.3)}
+.sr6-like.liked svg{fill:rgba(79,195,247,.6);stroke:rgba(79,195,247,.7)}
+.sr6-sal{width:27px;height:27px;border-radius:50%;background:rgba(200,170,100,.1);border:1px solid rgba(200,170,100,.2);display:none;justify-content:center;align-items:center;cursor:pointer;flex-shrink:0;font-size:5px;color:rgba(255,230,160,.8);font-weight:700}
+.sr6-rsp{display:none;width:27px;height:27px;border-radius:50%;background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.15);font-size:4px;font-weight:900;color:rgba(255,215,0,.8);flex-shrink:0;justify-content:center;align-items:center;line-height:27px;text-align:center}
+@keyframes sFlash{0%{color:#FFD700;text-shadow:0 0 10px rgba(255,215,0,.7);transform:scale(1.4)}100%{color:rgba(200,210,220,.45);text-shadow:none;transform:scale(1)}}
+.sr6-sc.flash{animation:sFlash .7s ease-out}
+
+.s6-bot{display:flex;justify-content:space-between;align-items:center;padding:3px 0;width:100%}
+.s6-btn{padding:4px 12px;border-radius:4px;font-size:9px;font-weight:700;cursor:pointer;letter-spacing:1px;border:none}
+.s6-pri{background:linear-gradient(135deg,#1565C0,#1976D2);color:#fff}
+.s6-sec{background:transparent;color:rgba(200,220,240,.35);border:1px solid rgba(100,160,220,.12)}
+
+/* Score Detail Overlay */
+.sd-ov{position:absolute;inset:0;background:rgba(0,0,0,.6);z-index:90;display:none;justify-content:center;align-items:center}
+.sd-ov.show{display:flex}
+.sd-card{background:linear-gradient(180deg,#0e1a30,#0a1020);border-radius:10px;border:1px solid rgba(100,160,220,.15);padding:8px 12px;width:50%;max-height:80%;overflow:hidden;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+.sd-top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sd-score{font-size:24px;font-weight:200;color:rgba(200,210,220,.7)}
+.sd-medal-area{display:flex;align-items:center;gap:6px}
+.sd-medal-area img{height:32px;object-fit:contain}
+.sd-rows{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}
+.sd-row{display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:6px;background:rgba(255,255,255,.03)}
+.sd-tg{padding:2px 8px;border-radius:10px;font-size:9px;font-weight:700;flex-shrink:0;min-width:60px;text-align:center}
+.sd-tg.stg{background:rgba(255,200,50,.12);border:1px solid rgba(255,200,50,.3);color:rgba(255,210,80,.9)}
+.sd-tg.stb{background:rgba(100,180,255,.1);border:1px solid rgba(100,180,255,.25);color:rgba(150,210,255,.85)}
+.sd-tg.stgr{background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.2);color:rgba(129,199,132,.85)}
+.sd-tg.stp{background:rgba(224,64,251,.1);border:1px solid rgba(224,64,251,.25);color:rgba(206,147,216,.85)}
+.sd-pct{position:relative;top:-6px;font-size:6px;padding:1px 4px;border-radius:6px;background:rgba(255,100,50,.2);color:rgba(255,150,100,.9);font-weight:700;margin-left:-4px}
+.sd-desc{flex:1;font-size:9px;color:rgba(200,220,240,.5);text-align:left}
+.sd-plus{font-size:11px;font-weight:700;color:#4FC3F7;min-width:36px;text-align:right}
+.sd-divider{width:100%;height:1px;background:rgba(255,255,255,.06);margin:4px 0}
+.sd-compare{font-size:10px;color:rgba(200,210,220,.45);text-align:center;margin-bottom:6px}
+.sd-radar-area{display:flex;align-items:center;justify-content:center;gap:16px;flex:1;min-height:0}
+.sd-radar{position:relative;flex-shrink:0}
+.sd-ability{display:flex;flex-direction:column;align-items:center;gap:2px}
+.sd-ability img{width:36px;height:36px;border-radius:50%}
+.sd-ability-label{font-size:7px;color:rgba(200,210,220,.4)}
+.sd-abilities{display:flex;gap:16px;align-items:center}
+.sd-close{position:absolute;top:6px;right:8px;width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.08);display:flex;justify-content:center;align-items:center;cursor:pointer;font-size:10px;color:rgba(255,255,255,.4);z-index:91}
+
+/* Equip overlay */
+.eq-ov{position:absolute;inset:0;background:linear-gradient(180deg,#0a1628,#0d1020);z-index:80;display:none;flex-direction:column;padding:6px 16px}
+.eq-ov.show{display:flex}
+.eq-body{display:flex;flex:1;gap:8px;min-height:0}
+.eq-col{flex:1;display:flex;flex-direction:column;gap:1px;overflow-y:auto;padding:0 3px}
+.eq-r{display:flex;align-items:center;gap:3px;padding:4px 2px;border-radius:3px;margin-bottom:1px;min-height:58px}
+.eq-r.ebl{background:rgba(30,60,120,.3)}.eq-r.erd{background:rgba(120,30,30,.2)}
+.eq-av{width:28px;height:28px;border-radius:3px;overflow:hidden;flex-shrink:0}
+.eq-av img{width:100%;height:100%;object-fit:cover}
+.eq-nm{font-size:6px;color:rgba(200,220,240,.4);width:38px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eq-md{display:flex;align-items:center;gap:1px}
+.eq-md img{height:16px}
+.eq-items{display:flex;gap:2px;margin-left:auto}
+.eq-it{width:22px;height:22px;border-radius:3px;overflow:hidden;border:1px solid rgba(100,160,220,.1);background:rgba(20,40,80,.3)}
+.eq-it img{width:100%;height:100%;object-fit:cover}
+.eq-bot{display:flex;justify-content:flex-start;padding:4px 0}
+.eq-back-btn{font-size:9px;color:rgba(100,180,255,.6);cursor:pointer;padding:3px 10px;border:1px solid rgba(100,180,255,.15);border-radius:4px;background:rgba(100,180,255,.05);letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="mode-bar">
+  <div class="mode-btn active" onclick="switchMode('standard')">标准(胜利)</div>
+  <div class="mode-btn" onclick="switchMode('high')">高分(顶级)</div>
+  <div class="mode-btn" onclick="switchMode('low')">中低分(失败)</div>
+  <div class="mode-btn" onclick="switchMode('return')">回流</div>
+  <div class="mode-btn" onclick="switchMode('newbie')">新手</div>
+</div>
+<div class="outer-wrap">
+<div class="page-indicator-outer" id="pgInd">1/6 胜利</div>
+<div class="phone-frame">
+<div class="phone-notch"></div>
+
+<div id="p1" class="page active">
+<div class="p1-bg"></div>
+<img class="p1-victory-img" id="p1Img" src="assets/shengli.png" alt="胜利">
+<div class="p1-beam"></div>
+<button class="cbtn" onclick="event.stopPropagation();nextPage()">继 续</button>
+</div>
+
+<div id="p2" class="page">
+<div class="hl-area"><video id="hlVideo" class="hl-video" preload="auto" playsinline><source src="assets/video/triple_kill.mp4" type="video/mp4"></video><div class="hl-banner" id="hlBanner"><div class="hl-label">精 彩 击 杀</div></div></div>
+<button class="cbtn" onclick="event.stopPropagation();nextPage()">继 续</button>
+</div>
+
+<div id="p3" class="page">
+<div class="t-bg"></div><div class="t-ov"></div>
+<div class="t-row" id="tRow"></div>
+<button class="cbtn" onclick="event.stopPropagation();nextPage()">继 续</button>
+</div>
+
+<div id="p4" class="page">
+<div class="p4-hero"><img src="assets/heroes_bust/bust2.png" alt=""><div class="p4-glow"></div></div>
+<div class="p4-info">
+  <div class="p4-tr"><div class="p4-kda"><span class="k">6</span>/<span class="d">3</span>/<span class="a">8</span></div><div class="p4-prof"><div class="p4-prof-f" id="profF"></div></div><div class="p4-set">&#9881;</div></div>
+  <div class="p4-score-row" style="cursor:pointer"><div class="p4-score" id="p4S">10.6</div><div class="p4-pct" id="p4P">前 12%</div><div class="p4-view-btn" onclick="showSDfromP4(event)">查看</div><div class="p4-medal" id="p4M"><img class="ir" id="p4MedalImg" src="assets/medals/铁牌中路.png"><img class="ab" src="assets/ability/分路_铜.png"><img class="ab" src="assets/ability/操作_铜.png"><img class="ab" src="assets/ability/团队_铜.png"></div></div>
+  <div class="p4-quests" id="p4Quests">
+    <div class="p4-tags-row" id="p4TagsRow">
+      <div class="p4-tg2 tg" id="ptg1">绝对火力</div>
+      <div class="p4-tg2 tgr" id="ptg2">吃草挤奶</div>
+      <div class="p4-tg2 tb" id="ptg3">最强大脑</div>
+      <div class="p4-detail-btn" onclick="showSDfromP4(event)">本局高光详情</div>
+    </div>
+    <div class="p4-quest-divider"></div>
+    <div class="p4-quest-title">目标挑战任务</div>
+    <div class="p4-q" id="pq3"><div class="p4-q-left"><div class="p4-q-name tb">恐怖草丛</div><div class="p4-q-desc">在草丛造成伤害4000/10000点</div></div><div class="p4-q-right"><div class="p4-q-bar"><div class="p4-q-track"><div class="p4-q-fill" id="pqFill">40%</div></div></div></div></div>
+  </div>
+  <!-- Newbie review panel -->
+  <div class="p4-review" id="p4Review" style="display:none">
+    <div class="p4-rv-section">
+      <div class="p4-rv-title"><span class="p4-rv-icon" style="background:rgba(79,195,247,.12);color:#4FC3F7">&#9998;</span>操作评估</div>
+      <div class="p4-rv-items">
+        <div class="p4-rv-item"><span class="p4-rv-badge warn">!</span><div class="p4-rv-text"><span class="p4-rv-bold">参团不足</span> 参团率52%，10分05秒关键团战缺席</div></div>
+        <div class="p4-rv-item"><span class="p4-rv-badge danger">&#10007;</span><div class="p4-rv-text"><span class="p4-rv-bold">冒进被抓</span> <span class="p4-rv-hl">6:10在敌塔附近被王昭君+墨子击杀</span></div></div>
+        <div class="p4-rv-item"><span class="p4-rv-badge warn">0</span><div class="p4-rv-text"><span class="p4-rv-bold">推塔为零</span> 高伤害未转化推进，推塔数0</div></div>
+      </div>
+    </div>
+    <div class="p4-rv-divider"></div>
+    <div class="p4-rv-section">
+      <div class="p4-rv-title"><span class="p4-rv-icon" style="background:rgba(129,199,132,.12);color:#81C784">&#9662;</span>数据对比</div>
+      <div class="p4-rv-items">
+        <div class="p4-rv-item"><span class="p4-rv-badge up">&#8593;</span><div class="p4-rv-text"><span class="p4-rv-bold">分均经济 769</span> 高于历史均值，状态提升</div></div>
+        <div class="p4-rv-item"><span class="p4-rv-badge up">&#8593;</span><div class="p4-rv-text"><span class="p4-rv-bold">分均输出 7064</span> 显著高于场均水平</div></div>
+        <div class="p4-rv-item"><span class="p4-rv-badge down">&#8595;</span><div class="p4-rv-text"><span class="p4-rv-bold">每死承伤 极高</span> 需减少无队友时的单独交战</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="p4-flash"><div class="p4-fl" id="fl1"><div class="p4-fl-i" style="background:rgba(100,180,255,.1);color:#4FC3F7">&#9733;</div>获得徽章</div><div class="p4-fl" id="fl2"><div class="p4-fl-i" style="background:rgba(255,200,50,.1);color:#FFD700">&#9679;</div>解锁战斗风格</div><div class="p4-fl" id="fl3"><div class="p4-fl-i" style="background:rgba(100,200,255,.1);color:#4FC3F7">&#9670;</div>熟练度+2</div><div class="p4-fl" id="fl4"><div class="p4-fl-i" style="background:rgba(255,200,50,.08);color:#FFD700">&#9679;</div>金币+100</div><div class="p4-fl" id="fl5"><div class="p4-fl-i" style="background:rgba(180,140,255,.1);color:#B388FF">&#9670;</div>铭文+20</div></div>
+  <div class="p4-bar" id="p4Bar" style="opacity:0"><div class="p4-bar-l"><span>本局总计积分</span><span class="p4-bar-pts">+112</span><span style="color:rgba(100,180,255,.35)">&gt;</span></div><div class="p4-bar-r"><span class="p4-bar-star">&#9733;</span><span class="p4-bar-st">星级+1</span></div><div class="p4-bar-track"><div class="p4-bar-gold" id="barGold"></div></div></div>
+</div>
+<div class="p4-btns"><button class="p4-b p4-bc" onclick="event.stopPropagation();nextPage()">点击继续</button><button class="p4-b p4-bs" onclick="event.stopPropagation();showShare()">炫耀一下</button></div>
+<div class="sd-ov" id="sdOvP4"></div>
+<div class="share-ov" id="shareOv"><div class="share-x" onclick="event.stopPropagation();hideShare()">&#10005;</div><div style="display:flex;flex-direction:column;align-items:center;gap:10px;max-width:95%;max-height:90%"><div style="display:flex;gap:8px;align-items:center" id="shareImgs"><img class="share-img" src="assets/share_card_1.png" onclick="event.stopPropagation();selectShare(this)" onerror="this.alt='share_card_1'" style="max-height:240px;border-radius:8px;cursor:pointer;border:2px solid transparent;flex:1;min-width:0;object-fit:contain"><img class="share-img" src="assets/share_card_2.png" onclick="event.stopPropagation();selectShare(this)" onerror="this.alt='share_card_2'" style="max-height:240px;border-radius:8px;cursor:pointer;border:2px solid transparent;flex:1;min-width:0;object-fit:contain"><img class="share-img" src="assets/share_card_3.png" onclick="event.stopPropagation();selectShare(this)" onerror="this.alt='share_card_3'" style="max-height:240px;border-radius:8px;cursor:pointer;border:2px solid transparent;flex:1;min-width:0;object-fit:contain"></div><button id="shareBtn" style="display:none;padding:6px 32px;border-radius:6px;background:linear-gradient(135deg,#FFD700,#FFA000);color:#000;font-size:11px;font-weight:700;letter-spacing:3px;cursor:pointer;border:none;box-shadow:0 2px 12px rgba(255,215,0,.3)" onclick="event.stopPropagation()">炫 耀</button></div></div>
+</div>
+
+<div id="p5" class="page">
+<div class="r-meteors" id="rMeteors"></div>
+<div class="r5-title">永 恒 钻 石 I</div>
+<div class="r5-center">
+  <div class="r5-badge"><div class="r5-badge-bg"></div><div class="r5-badge-inner"><div class="r5-roman">I</div></div></div>
+  <div class="r5-stars" id="rStars"></div>
+  <div class="r5-prog"><div class="r5-prog-f" id="rProgF"></div></div>
+  <div class="r5-change" id="rChange">星级 +1</div>
+</div>
+<div class="r5-bottom">
+  <div class="r5-bl">
+    <div class="r5-bl-row"><span class="r5-bl-dot">·</span>本局总计 <span class="r5-bl-pts">+411</span> <span style="color:rgba(100,180,255,.35)">&gt;</span></div>
+    <div class="r5-bl-row"><span class="r5-bl-dot">·</span>顶级加分 <img class="r5-bl-medal" src="assets/medals/顶级中路154x38.png"></div>
+    <div class="r5-bl-row"><span class="r5-bl-dot">·</span>排位加星卡额外加星</div>
+  </div>
+  <div class="r5-br">
+    <div class="r5-br-item"><div class="r5-br-info"><div class="r5-br-label">分路积分</div><div class="r5-br-val">6段 2971<span class="grn">(+61)</span></div></div><div class="r5-br-icon">Z</div></div>
+    <div class="r5-br-item"><div class="r5-br-info"><div class="r5-br-label">距离市榜前50</div><div class="r5-br-val">1042<span class="grn">(+118)</span>/2783</div></div><div class="r5-br-icon">&#9734;</div></div>
+  </div>
+</div>
+<button class="cbtn" id="p5Btn" onclick="event.stopPropagation();p5Next()">继 续</button>
+<!-- 王者归来 overlay (return mode) -->
+<div class="return-ov" id="returnOv">
+  <div class="return-card">
+    <div class="return-title">王 者 归 来</div>
+    <div class="return-badges">
+      <div class="return-badge-col"><div class="r5-badge-inner" style="width:70px;height:70px"><div class="r5-roman" style="font-size:20px">II</div></div><div style="font-size:8px;color:rgba(200,210,220,.4);margin-top:4px">当前段位</div><div style="font-size:7px;color:rgba(200,210,220,.3)">秩序白银 II</div></div>
+      <div style="font-size:16px;color:rgba(79,195,247,.6);display:flex;align-items:center">→ <span style="font-size:10px;color:#81C784;margin-left:4px">+18★</span></div>
+      <div class="return-badge-col"><div class="r5-badge-inner" style="width:70px;height:70px;border-color:rgba(200,170,80,.5);background:linear-gradient(135deg,rgba(200,170,80,.3),rgba(160,130,60,.1))"><div class="r5-roman" style="font-size:20px">I</div></div><div style="font-size:8px;color:rgba(200,210,220,.4);margin-top:4px">提升后段位</div><div style="font-size:7px;color:rgba(255,215,0,.6)">荣耀黄金 I</div></div>
+    </div>
+    <div style="font-size:8px;color:rgba(200,210,220,.35);text-align:center;margin:6px 0">不愧是曾经的最强王者，这把表现太赞了，为你<span style="color:#4FC3F7">重新定级</span></div>
+    <div style="display:flex;gap:12px;justify-content:center">
+      <button class="return-btn-skip" onclick="event.stopPropagation();closeReturn()">放弃</button>
+      <button class="return-btn-accept" onclick="event.stopPropagation();acceptReturn()">接 受</button>
+    </div>
+  </div>
+</div>
+<!-- 段位升级视频 overlay -->
+<div class="rankup-ov" id="rankupOv">
+  <video id="rankupVideo" class="hl-video" preload="auto" playsinline style="width:100%;height:100%;object-fit:cover"><source src="assets/video/rank_up.mp4" type="video/mp4"></video>
+  <button class="cbtn" style="bottom:8px" onclick="event.stopPropagation();closeRankup()">继 续</button>
+</div>
+</div>
+
+<div id="p6" class="page">
+<div class="s6-hdr"><div class="s6-banner"><span class="s6-ts bl">12</span><span class="s6-vl">胜 利</span><span class="s6-ts rd">35</span></div></div>
+<div class="s6-cols" id="s6Table"></div>
+<div class="s6-bot"><button class="s6-btn s6-sec" onclick="event.stopPropagation();showEq()">装备</button><button class="s6-btn s6-pri">返回大厅</button></div>
+<div class="sd-ov" id="sdOvP6"></div>
+<div class="eq-ov" id="eqOv"></div>
+</div>
+
+<div class="phone-home"></div>
+</div>
+<div class="nav-dots-outer" id="navDots"></div>
+</div>
+
+<script>
+// === MODE SYSTEM ===
+var MODE='standard'; // standard, high, low, return
+var MODES={
+  standard:{p1:'win',hasP2:true,hasP3:true,p4medal:'iron',p4medalTo:'bronze',p4score:10.6,p4scoreDelta:.1,p4pts:'+112',p4stars:'星级+1',p4pct:'前 12%',meMedal:'bronze',p5rank:'永 恒 钻 石 I',hasReturn:false,isNewbie:false},
+  high:{p1:'win',hasP2:true,hasP3:true,p4medal:'top',p4medalTo:null,p4score:16,p4scoreDelta:0,p4pts:'+300',p4stars:'星级+3',p4pct:'前 0.1%',meMedal:'top',p5rank:'永 恒 钻 石 I',hasReturn:false,isNewbie:false},
+  low:{p1:'lose',hasP2:false,hasP3:true,p4medal:'iron',p4medalTo:'bronze',p4score:7.2,p4scoreDelta:.1,p4pts:'-60',p4stars:'星级+1',p4pct:'前 65%',meMedal:'bronze',p5rank:'永 恒 钻 石 I',hasReturn:false,isNewbie:false},
+  'return':{p1:'win',hasP2:true,hasP3:true,p4medal:'iron',p4medalTo:'bronze',p4score:10.6,p4scoreDelta:.1,p4pts:'+112',p4stars:'星级+1',p4pct:'前 12%',meMedal:'bronze',p5rank:'永 恒 钻 石 I',hasReturn:true,isNewbie:false},
+  newbie:{p1:'win',hasP2:false,hasP3:false,p4medal:'iron',p4medalTo:null,p4score:6.5,p4scoreDelta:0,p4pts:'+45',p4stars:'星级+1',p4pct:'前 72%',meMedal:'iron',p5rank:'永 恒 钻 石 I',hasReturn:false,isNewbie:true}
+};
+function switchMode(m){
+  MODE=m;
+  document.querySelectorAll('.mode-btn').forEach(function(b){b.classList.remove('active')});
+  event.target.classList.add('active');
+  // Reset state
+  p4Done=false;p5Done=false;p3Done=false;
+  // Re-init
+  applyMode();
+  showPage(0);
+  animP1();
+}
+function applyMode(){
+  var cfg=MODES[MODE];
+  // P1: win or lose
+  var p1=document.getElementById('p1');
+  var p1Img=document.getElementById('p1Img');
+  if(cfg.p1==='lose'){
+    p1.style.background='linear-gradient(180deg,#2a1020,#1a0818,#100010)';
+    p1Img.style.display='none';
+    var defeatEl=document.getElementById('p1Defeat');
+    if(!defeatEl){defeatEl=document.createElement('div');defeatEl.id='p1Defeat';defeatEl.style.cssText='position:relative;z-index:3;font-size:42px;font-weight:900;letter-spacing:12px;background:linear-gradient(180deg,#888,#555);-webkit-background-clip:text;-webkit-text-fill-color:transparent;filter:drop-shadow(0 3px 12px rgba(100,100,100,.4))';defeatEl.textContent='失 败';p1.insertBefore(defeatEl,p1.querySelector('.p1-beam'))}
+    defeatEl.style.display='block';
+    document.querySelector('.p1-beam').style.background='linear-gradient(90deg,transparent,rgba(200,100,100,.3),rgba(220,120,120,.5),rgba(200,100,100,.3),transparent)';
+  }else{
+    p1.style.background='';
+    p1Img.style.display='';p1Img.style.opacity='0';
+    var defeatEl=document.getElementById('p1Defeat');if(defeatEl)defeatEl.style.display='none';
+    document.querySelector('.p1-beam').style.background='';
+  }
+  // P4: medal and score
+  var medalImg=document.getElementById('p4MedalImg');
+  var scoreEl=document.getElementById('p4S');
+  scoreEl.textContent=cfg.p4score.toFixed(1);scoreEl.style.opacity='0';
+  document.getElementById('p4P').textContent=cfg.p4pct;
+  document.getElementById('p4P').style.opacity='0';
+  document.getElementById('p4M').style.opacity='0';
+  if(cfg.p4medal==='top'){medalImg.src='assets/medals/顶级中路298x72.png';}
+  else{medalImg.src='assets/medals/铁牌中路.png';}
+  document.querySelectorAll('.p4-q').forEach(function(q){q.style.opacity='0'});
+  var tr=document.getElementById('p4TagsRow');if(tr)tr.style.opacity='0';
+  var vb=document.querySelector('.p4-view-btn');if(vb)vb.style.opacity='0';
+  document.querySelectorAll('.p4-fl').forEach(function(f){f.style.opacity='0'});
+  document.getElementById('p4Bar').style.opacity='0';
+  document.getElementById('barGold').style.width='0%';
+  document.querySelector('.p4-bar-pts').textContent=cfg.p4pts;
+  document.querySelector('.p4-bar-st').textContent=cfg.p4stars;
+  // Newbie: hide quests, show review; others: show quests, hide review
+  document.getElementById('p4Quests').style.display=cfg.isNewbie?'none':'flex';
+  document.getElementById('p4Review').style.display=cfg.isNewbie?'block':'none';
+  // Update "me" player (BT[1]) medal based on mode
+  BT[1].mt=cfg.meMedal;
+  // Rebuild P3 and P6 to reflect medal changes
+  document.getElementById('tRow').innerHTML='';p3Done=false;buildTeam();
+  buildStats();
+  // P5 return overlay reset
+  document.getElementById('returnOv').classList.remove('show');
+  document.getElementById('rankupOv').classList.remove('show');
+}
+
+var PG=['p1','p2','p3','p4','p5','p6'],PN=['战斗结果','高光镜头','五人集结','个人获得','排位目标','战绩总览'],CP=0;
+var NA={'h1':'assets/heroes_normal/hero1.png','h2':'assets/heroes_normal/hero2.png','h3':'assets/heroes_normal/hero3.png','h4':'assets/heroes_normal/hero4.png','h5':'assets/heroes_normal/hero5.png','h6':'assets/heroes_normal/hero6.png','h7':'assets/heroes_normal/hero7.png','h8':'assets/heroes_normal/hero8.png','h9':'assets/heroes_normal/hero9.png','h10':'assets/heroes_normal/hero10.png'};
+var BA={'b1':'assets/heroes_bust/bust1.png','b2':'assets/heroes_bust/bust2.png','b3':'assets/heroes_bust/bust3.png','b4':'assets/heroes_bust/bust4.png','b5':'assets/heroes_bust/bust5.png'};
+var PE=['🐱','🐶','🐰','🐼','🐨'];
+var MEDAL_MAP={
+'top_对抗路':'assets/medals/顶级对抗路298x72.png','top_中路':'assets/medals/顶级中路298x72.png','top_打野':'assets/medals/顶级打野298x72.png','top_游走':'assets/medals/顶级游走298x72.png','top_发育路':'assets/medals/顶级发育路298x72.png',
+'gold_对抗路':'assets/medals/金牌对抗路298x72.png','gold_中路':'assets/medals/金牌中路298x72.png','gold_打野':'assets/medals/金牌打野298x72.png','gold_游走':'assets/medals/金牌游走298x72.png','gold_发育路':'assets/medals/金牌发育路298x72.png',
+'silver_对抗路':'assets/medals/银牌对抗路298x72.png','silver_中路':'assets/medals/银牌中路298x72.png','silver_打野':'assets/medals/银牌打野298x72.png','silver_游走':'assets/medals/银牌游走298x72.png','silver_发育路':'assets/medals/银牌发育路298x72.png',
+'bronze_对抗路':'assets/medals/铜牌对抗路298x72.png','bronze_中路':'assets/medals/铜牌中路298x72.png','bronze_打野':'assets/medals/铜牌打野298x72.png','bronze_游走':'assets/medals/铜牌游走298x72.png','bronze_发育路':'assets/medals/铜牌发育路298x72.png',
+'iron_中路':'assets/medals/铁牌中路.png','iron_发育路':'assets/medals/铁牌发育路.png','iron_对抗路':'assets/medals/铁牌中路.png','iron_打野':'assets/medals/铁牌中路.png','iron_游走':'assets/medals/铁牌中路.png'
+};
+function gM(t,r){return MEDAL_MAP[t+'_'+r]||''}
+var ABILITY_MAP={
+'分路_金':'assets/ability/分路_金.png','分路_银':'assets/ability/分路_银.png','分路_铜':'assets/ability/分路_铜.png','分路_铁':'assets/ability/分路_铁.png',
+'操作_金':'assets/ability/操作_金.png','操作_银':'assets/ability/操作_银.png','操作_铜':'assets/ability/操作_铜.png','操作_铁':'assets/ability/操作_铁.png',
+'团队_金':'assets/ability/团队_金.png','团队_银':'assets/ability/团队_银.png','团队_铜':'assets/ability/团队_铜.png','团队_铁':'assets/ability/团队_铁.png'
+};
+function gA(d,l){return ABILITY_MAP[d+'_'+l]||''}
+var EQUIP_MAP={'1116':'assets/equip/1116.png','1117':'assets/equip/1117.png','1126':'assets/equip/1126.png','1127':'assets/equip/1127.png','1128':'assets/equip/1128.png','1131':'assets/equip/1131.png','1132':'assets/equip/1132.png','1133':'assets/equip/1133.png','1134':'assets/equip/1134.png','1135':'assets/equip/1135.png','1136':'assets/equip/1136.png','1211':'assets/equip/1211.png','1212':'assets/equip/1212.png','1213':'assets/equip/1213.png','1214':'assets/equip/1214.png','1215':'assets/equip/1215.png','1216':'assets/equip/1216.png','1221':'assets/equip/1221.png','1222':'assets/equip/1222.png','1223':'assets/equip/1223.png','1224':'assets/equip/1224.png','1225':'assets/equip/1225.png','1226':'assets/equip/1226.png','1231':'assets/equip/1231.png','1232':'assets/equip/1232.png','1233':'assets/equip/1233.png','1311':'assets/equip/1311.png','1312':'assets/equip/1312.png','1313':'assets/equip/1313.png','1314':'assets/equip/1314.png','1315':'assets/equip/1315.png','1316':'assets/equip/1316.png','1321':'assets/equip/1321.png','1322':'assets/equip/1322.png','1323':'assets/equip/1323.png','1324':'assets/equip/1324.png','1325':'assets/equip/1325.png','1326':'assets/equip/1326.png'};
+function gE(id){return EQUIP_MAP[id]||''}
+var TS='<svg viewBox="0 0 24 24"><path d="M7 22V11M2 13V20C2 21.1 2.9 22 4 22H17.4C18.2 22 18.9 21.5 19.2 20.7L21.7 14.2C21.9 13.8 22 13.4 22 13V11C22 9.9 21.1 9 20 9H14.7L15.6 4.6C15.7 4.2 15.6 3.7 15.3 3.4L14.2 2.3C13.8 1.9 13.2 1.9 12.8 2.3L7 9"/></svg>';
+var TDO=[{b:'b1',d:0},{b:'b3',d:2},{b:'b2',d:1},{b:'b4',d:3},{b:'b5',d:4}];
+var BT=[
+{av:'h1',nm:'玩家昵称1',rl:'对抗路',mt:'gold',kda:'8/2/6',sc:10.5,gd:'12.8k',tgs:[{t:'擎天一柱',c:'tg'},{t:'攻城拔寨',c:'tb'},{t:'冲锋陷阵',c:'tgr'}],abs:[{d:'分路',l:'金'},{d:'操作',l:'银'},{d:'团队',l:'银'}],eq:['1131','1135','1136','1211','1215','1321']},
+{av:'h2',nm:'玩家昵称2',rl:'中路',mt:'bronze',kda:'6/3/8',sc:9.8,gd:'11.2k',me:1,tgs:[{t:'绝对火力',c:'tg'},{t:'吃草挤奶',c:'tgr'},{t:'最强大脑',c:'tb'}],mvp:1,abs:[{d:'分路',l:'银'},{d:'操作',l:'金'},{d:'团队',l:'银'}],eq:['1116','1117','1126','1127','1128','1131']},
+{av:'h3',nm:'玩家昵称3',rl:'发育路',mt:'iron',kda:'5/8/2',sc:9.0,gd:'9.6k',tgs:[{t:'牵制重兵',c:'tg'},{t:'孤掌难鸣',c:'tb'}],abs:[{d:'分路',l:'铜'},{d:'操作',l:'铜'},{d:'团队',l:'铜'}],eq:['1211','1212','1213','1214','1215','1216']},
+{av:'h4',nm:'玩家昵称4',rl:'游走',mt:null,kda:'0/5/12',sc:7.5,gd:'7.1k',tgs:[{t:'肱骨之人',c:'tg'}],abs:[{d:'分路',l:'铜'},{d:'操作',l:'铜'},{d:'团队',l:'铜'}],eq:['1311','1312','1313','1314','1315','1316']},
+{av:'h5',nm:'玩家昵称5',rl:'发育路',mt:null,kda:'3/7/4',sc:7.0,gd:'8.3k',tgs:[{t:'砥砺前行',c:'tgr'},{t:'负重前行',c:'tb'}],abs:[{d:'分路',l:'铜'},{d:'操作',l:'铜'},{d:'团队',l:'铜'}],eq:['1132','1133','1134','1135','1136','1131']}
+];
+var RT=[
+{av:'h6',nm:'玩家昵称6',rl:'对抗路',mt:'top',kda:'12/0/15',sc:11.2,gd:'16.5k',tgs:[{t:'锐不可当',c:'tg'},{t:'屠龙勇士',c:'tb'},{t:'遮风挡雨',c:'tgr'}],mvp:1,abs:[{d:'分路',l:'金'},{d:'操作',l:'金'},{d:'团队',l:'金'}],eq:['1221','1222','1223','1224','1225','1226']},
+{av:'h7',nm:'玩家昵称7',rl:'中路',mt:'gold',kda:'10/2/14',sc:10.8,gd:'14.2k',tgs:[{t:'奠定胜势',c:'tg'},{t:'高效输出',c:'tb'},{t:'游刃有余',c:'tgr'}],abs:[{d:'分路',l:'金'},{d:'操作',l:'银'},{d:'团队',l:'银'}],eq:['1116','1117','1126','1127','1231','1232']},
+{av:'h8',nm:'玩家昵称8',rl:'打野',mt:'silver',kda:'8/5/8',sc:9.6,gd:'12.1k',tgs:[{t:'犁庭扫穴',c:'tg'},{t:'致命猎手',c:'tb'}],abs:[{d:'分路',l:'银'},{d:'操作',l:'银'},{d:'团队',l:'铜'}],eq:['1211','1212','1213','1214','1215','1216']},
+{av:'h9',nm:'玩家昵称9',rl:'游走',mt:null,kda:'0/3/20',sc:9.2,gd:'6.8k',tgs:[{t:'控场大师',c:'tb'}],abs:[{d:'分路',l:'铜'},{d:'操作',l:'铜'},{d:'团队',l:'金'}],eq:['1321','1322','1323','1324','1325','1326']},
+{av:'h10',nm:'玩家昵称10',rl:'发育路',mt:'bronze',kda:'5/2/10',sc:8.8,gd:'10.4k',tgs:[{t:'虽败尤荣',c:'tgr'},{t:'独木难支',c:'tg'}],abs:[{d:'分路',l:'银'},{d:'操作',l:'铜'},{d:'团队',l:'铜'}],eq:['1131','1132','1133','1231','1232','1233']}
+];
+var PS={};BT.forEach(function(p,i){PS['b'+i]=p.sc});RT.forEach(function(p,i){PS['r'+i]=p.sc});
+
+// Score detail data for each player
+var SD_DATA={};
+function genSD(p){
+  var details=[];
+  if(p.tgs)p.tgs.forEach(function(t,i){
+    var descs=[
+      {d:'承受伤害300k',pct:'前0.1%',plus:'+0.3'},
+      {d:'控制时长92秒',pct:'前3%',plus:'+0.2'},
+      {d:'经济转化率1.5',pct:null,plus:'+0.1'},
+      {d:'参团率85%',pct:'前5%',plus:'+0.2'},
+      {d:'输出占比32%',pct:null,plus:'+0.1'},
+      {d:'推塔伤害12k',pct:'前8%',plus:'+0.2'},
+      {d:'视野评分A+',pct:'前2%',plus:'+0.3'},
+      {d:'补刀差+45',pct:null,plus:'+0.1'}
+    ];
+    var dd=descs[i%descs.length];
+    details.push({tag:t.t,tc:t.c,desc:dd.d,pct:dd.pct,plus:dd.plus});
+  });
+  // Radar data (0-1 scale, 8 axes)
+  var radar=[];for(var j=0;j<8;j++)radar.push(.3+Math.random()*.6);
+  // Reference radar (gold player baseline)
+  var ref=[];for(var j=0;j<8;j++)ref.push(.4+Math.random()*.4);
+  return {details:details,radar:radar,ref:ref};
+}
+BT.forEach(function(p,i){SD_DATA['b'+i]=genSD(p)});
+RT.forEach(function(p,i){SD_DATA['r'+i]=genSD(p)});
+// P4 player data key
+var P4_KEY='b1'; // player 2 (me) is index 1 in BT
+
+var RADAR_LABELS=['推进','战斗','参团率','压制','补刀差','经济转化','承伤','中路职责'];
+
+function drawRadar(canvas,data,ref){
+  var ctx=canvas.getContext('2d');
+  var w=canvas.width,h=canvas.height;
+  var cx=w/2,cy=h/2,r=Math.min(w,h)/2-20;
+  var n=8;ctx.clearRect(0,0,w,h);
+  // Grid
+  for(var ring=1;ring<=4;ring++){
+    ctx.beginPath();
+    for(var j=0;j<=n;j++){
+      var a=-Math.PI/2+2*Math.PI*j/n;
+      var rr=r*ring/4;
+      if(j===0)ctx.moveTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));
+      else ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));
+    }ctx.closePath();ctx.strokeStyle='rgba(100,150,200,.12)';ctx.lineWidth=1;ctx.stroke();
+  }
+  // Axes + labels
+  ctx.font='8px PingFang SC,Microsoft YaHei,sans-serif';ctx.fillStyle='rgba(200,220,240,.4)';ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var j=0;j<n;j++){
+    var a=-Math.PI/2+2*Math.PI*j/n;
+    ctx.beginPath();ctx.moveTo(cx,cy);ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a));ctx.strokeStyle='rgba(100,150,200,.06)';ctx.stroke();
+    var lx=cx+(r+14)*Math.cos(a),ly=cy+(r+14)*Math.sin(a);
+    ctx.fillText(RADAR_LABELS[j],lx,ly);
+  }
+  // Reference area (dark blue)
+  ctx.beginPath();
+  for(var j=0;j<=n;j++){
+    var a=-Math.PI/2+2*Math.PI*(j%n)/n;
+    var rr=r*ref[j%n];
+    if(j===0)ctx.moveTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));
+    else ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));
+  }ctx.closePath();ctx.fillStyle='rgba(30,80,180,.2)';ctx.fill();ctx.strokeStyle='rgba(60,120,220,.3)';ctx.lineWidth=1.5;ctx.stroke();
+  // Player area (green/cyan)
+  ctx.beginPath();
+  for(var j=0;j<=n;j++){
+    var a=-Math.PI/2+2*Math.PI*(j%n)/n;
+    var rr=r*data[j%n];
+    if(j===0)ctx.moveTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));
+    else ctx.lineTo(cx+rr*Math.cos(a),cy+rr*Math.sin(a));
+  }ctx.closePath();ctx.fillStyle='rgba(0,220,180,.12)';ctx.fill();ctx.strokeStyle='rgba(0,220,180,.6)';ctx.lineWidth=2;ctx.stroke();
+  // Dots on player
+  for(var j=0;j<n;j++){
+    var a=-Math.PI/2+2*Math.PI*j/n;var rr=r*data[j];
+    ctx.beginPath();ctx.arc(cx+rr*Math.cos(a),cy+rr*Math.sin(a),2.5,0,2*Math.PI);ctx.fillStyle='rgba(0,220,180,.8)';ctx.fill();
+  }
+}
+
+function buildSDContent(p,k,sd){
+  var medalH='';
+  if(p.mt==='gold'||p.mt==='silver'||p.mt==='bronze'||p.mt==='top'){var ms=gM(p.mt,p.rl);if(ms)medalH='<img src="'+ms+'">';}
+  else if(p.mt==='iron')medalH='<img src="'+gM('iron',p.rl)+'">';
+  var h='<div class="sd-card" onclick="event.stopPropagation()">';
+  h+='<div class="sd-close" onclick="event.stopPropagation();closeSD(this)">\u2715</div>';
+  h+='<div class="sd-top"><div class="sd-score">'+PS[k].toFixed(1)+'</div><div class="sd-medal-area">'+medalH+'</div></div>';
+  h+='<div class="sd-rows">';
+  sd.details.forEach(function(d){
+    var cc=d.tc==='tg'?'stg':(d.tc==='tb'?'stb':(d.tc==='tgr'?'stgr':'stp'));
+    var pctH=d.pct?'<span class="sd-pct">'+d.pct+'</span>':'';
+    h+='<div class="sd-row"><span class="sd-tg '+cc+'">'+d.tag+'</span>'+pctH+'<span class="sd-desc">'+d.desc+'</span><span class="sd-plus">'+d.plus+'</span></div>';
+  });
+  h+='</div>';
+  h+='<div class="sd-divider"></div>';
+  h+='<div class="sd-compare">本局表现与该英雄金牌玩家对比：</div>';
+  // Radar + abilities
+  h+='<div class="sd-radar-area">';
+  // Left ability
+  if(p.abs&&p.abs.length>=2){
+    h+='<div class="sd-ability"><img src="'+gA(p.abs[1].d,p.abs[1].l)+'"><div class="sd-ability-label">'+p.abs[1].d+'</div></div>';
+  }
+  h+='<div class="sd-radar"><canvas id="sdCanvas_'+k+'" width="120" height="120"></canvas></div>';
+  // Right ability
+  if(p.abs&&p.abs.length>=3){
+    h+='<div class="sd-ability"><img src="'+gA(p.abs[2].d,p.abs[2].l)+'"><div class="sd-ability-label">'+p.abs[2].d+'</div></div>';
+  }
+  h+='</div>';
+  // Bottom ability (分路)
+  if(p.abs&&p.abs.length>=1){
+    h+='<div style="display:flex;justify-content:center;margin-top:2px"><div class="sd-ability"><img src="'+gA(p.abs[0].d,p.abs[0].l)+'"><div class="sd-ability-label">'+p.abs[0].d+'</div></div></div>';
+  }
+  h+='</div>'; // close sd-card
+  return h;
+}
+
+function showSDfromP4(e){
+  e.stopPropagation();
+  var ov=document.getElementById('sdOvP4');
+  var p=BT[1]; // me player
+  var k=P4_KEY;
+  var sd=SD_DATA[k];
+  ov.innerHTML=buildSDContent(p,k,sd);
+  ov.classList.add('show');
+  ov.onclick=function(ev){if(ev.target===ov)ov.classList.remove('show')};
+  setTimeout(function(){var cv=document.getElementById('sdCanvas_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
+}
+function showSDfromP6(k,e){
+  e.stopPropagation();
+  var ov=document.getElementById('sdOvP6');
+  var isBT=k.charAt(0)==='b';
+  var idx=parseInt(k.charAt(1));
+  var p=isBT?BT[idx]:RT[idx];
+  var sd=SD_DATA[k];
+  ov.innerHTML=buildSDContent(p,k,sd);
+  ov.classList.add('show');
+  ov.onclick=function(ev){if(ev.target===ov)ov.classList.remove('show')};
+  setTimeout(function(){var cv=document.getElementById('sdCanvas_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
+}
+function closeSD(el){el.closest('.sd-ov').classList.remove('show')}
+
+function init(){buildNav();buildTeam();buildStats();showPage(0);animP1()}
+function buildNav(){var c=document.getElementById('navDots');PG.forEach(function(_,i){var d=document.createElement('div');d.className='ndot'+(i===0?' active':'');d.onclick=function(e){e.stopPropagation();showPage(i)};c.appendChild(d)})}
+function showPage(i){if(i<0||i>=PG.length)return;CP=i;PG.forEach(function(id,j){document.getElementById(id).classList.toggle('active',j===i)});document.querySelectorAll('.ndot').forEach(function(d,j){d.classList.toggle('active',j===i)});document.getElementById('pgInd').textContent=(i+1)+'/'+PG.length+' '+PN[i];if(i===1)startVid();if(i===2)animP3();if(i===3)animP4();if(i===4)animP5();if(i!==1)pauseVid()}
+function nextPage(){
+  var next=CP+1;
+  var cfg=MODES[MODE];
+  // Skip P2 (index 1) if no highlight
+  if(next===1&&!cfg.hasP2)next=2;
+  // Skip P3 (index 2) if no team display
+  if(next===2&&!cfg.hasP3)next=3;
+  if(next>=PG.length)next=0;
+  showPage(next);
+}
+
+// === P1 GSAP ===
+function animP1(){
+  var tl=gsap.timeline({delay:.2});
+  // Particles
+  var p1=document.getElementById('p1');for(var i=0;i<20;i++){var pt=document.createElement('div');pt.className='p1-particle';pt.style.left=Math.random()*100+'%';pt.style.bottom=Math.random()*40+'%';p1.appendChild(pt);gsap.fromTo(pt,{opacity:0,y:0},{opacity:Math.random()*.6+.2,y:-80-Math.random()*60,duration:2+Math.random()*2,repeat:-1,delay:Math.random()*3,ease:'none'})}
+  // Victory image pop in
+  tl.fromTo('#p1Img',{opacity:0,scale:.4},{opacity:1,scale:1,duration:.8,ease:'back.out(1.5)'},0);
+  // Bottom beam
+  tl.fromTo('.p1-beam',{width:0,opacity:0},{width:350,opacity:1,duration:.8,ease:'power2.out'},.8);
+}
+
+// === P2 ===
+var vid=document.getElementById('hlVideo');
+function startVid(){var b=document.getElementById('hlBanner');gsap.set(b,{opacity:0});vid.currentTime=0;vid.play().then(function(){gsap.to(b,{opacity:1,duration:.4,delay:.5})}).catch(function(){})}
+function pauseVid(){if(!vid.paused)vid.pause()}
+
+// === P3 ===
+function buildTeam(){var c=document.getElementById('tRow');TDO.forEach(function(item,di){var p=BT[item.d];var card=document.createElement('div');card.className='tc'+(p.me?' is-me':'')+(p.mvp?' is-mvp':'');
+var mH='<div class="tc-medal-top">';if(p.mt==='gold'||p.mt==='silver'||p.mt==='bronze'||p.mt==='top'){var ms=gM(p.mt,p.rl);if(ms)mH+='<img src="'+ms+'">';}else if(p.mt==='iron'){mH+='<img src="'+gM('iron',p.rl)+'" style="height:32px">';}mH+='</div>';
+var bH='<div class="tc-bust"><img src="'+BA[item.b]+'">'+(p.mvp?'<div class="tc-mvp">MVP</div>':'')+'</div>';
+var btH='<div class="tc-bot"><div class="tc-ava">'+PE[di%5]+'</div><div class="tc-nm">'+p.nm+'</div><div class="tc-tags">';if(p.tgs)p.tgs.forEach(function(t){btH+='<span class="tc-tg '+t.c+'">'+t.t+'</span>'});btH+='</div><div class="tc-act"><div class="tc-lb" id="tl'+item.d+'" onclick="event.stopPropagation();tLike('+item.d+')">'+TS+'</div><div class="tc-pop" id="tp'+item.d+'" style="color:#4FC3F7">+0.1</div><div class="tc-sl" id="ts'+item.d+'" onclick="event.stopPropagation();tSal('+item.d+')">致敬</div><div class="tc-pop" id="tsp'+item.d+'" style="color:#FFD700">+0.3</div><div class="tc-rsp" id="tr'+item.d+'">RESPECT</div></div></div>';
+card.innerHTML=mH+bH+btH;c.appendChild(card)})}
+var p3Done=false;
+function animP3(){if(p3Done)return;p3Done=true;var cards=document.querySelectorAll('.tc');gsap.fromTo(cards,{opacity:0,y:30},{opacity:1,y:0,duration:.5,stagger:.12,ease:'power2.out'})}
+function spawnP3Particles(fromEl,color,count){
+  var p3=document.getElementById('p3');
+  var fR=fromEl.getBoundingClientRect();
+  var pR=p3.getBoundingClientRect();
+  var sx=fR.left-pR.left+fR.width/2;var sy=fR.top-pR.top+fR.height/2;
+  for(var i=0;i<count;i++){
+    (function(idx){
+      var pt=document.createElement('div');
+      pt.style.cssText='position:absolute;width:'+(3+Math.random()*3)+'px;height:'+(3+Math.random()*3)+'px;border-radius:50%;pointer-events:none;z-index:30;';
+      pt.style.background=color==='blue'?'radial-gradient(circle,rgba(79,195,247,.9),rgba(79,195,247,.3))':'radial-gradient(circle,rgba(255,215,0,.9),rgba(255,180,50,.3))';
+      pt.style.boxShadow=color==='blue'?'0 0 6px rgba(79,195,247,.6)':'0 0 6px rgba(255,215,0,.6)';
+      p3.appendChild(pt);
+      var angle=Math.random()*Math.PI*2;var dist=20+Math.random()*40;
+      gsap.set(pt,{left:sx,top:sy,opacity:1});
+      gsap.to(pt,{left:sx+Math.cos(angle)*dist,top:sy+Math.sin(angle)*dist-20,opacity:0,scale:0,duration:.5+Math.random()*.3,delay:idx*.02,ease:'power2.out',onComplete:function(){pt.remove()}});
+    })(i);
+  }
+}
+function tLike(i){var b=document.getElementById('tl'+i);if(b.classList.contains('liked'))return;b.classList.add('liked');
+spawnP3Particles(b,'blue',8);
+var p=document.getElementById('tp'+i);gsap.fromTo(p,{opacity:0,y:0},{opacity:1,y:-12,duration:.4,ease:'power2.out',onComplete:function(){gsap.to(p,{opacity:0,y:-20,duration:.3})}});setTimeout(function(){b.style.display='none';document.getElementById('ts'+i).style.display='flex'},700)}
+function tSal(i){var sl=document.getElementById('ts'+i);
+spawnP3Particles(sl,'gold',14);
+var p=document.getElementById('tsp'+i);gsap.fromTo(p,{opacity:0,y:0},{opacity:1,y:-12,duration:.4,ease:'power2.out',onComplete:function(){gsap.to(p,{opacity:0,y:-20,duration:.3})}});setTimeout(function(){document.getElementById('ts'+i).style.display='none';var r=document.getElementById('tr'+i);r.style.display='block';gsap.fromTo(r,{opacity:0,scale:.5},{opacity:1,scale:1,duration:.4,ease:'back.out(2)'});gsap.to(r,{textShadow:'0 0 16px rgba(255,215,0,.6)',duration:.8,repeat:-1,yoyo:true})},700)}
+
+// === P4 GSAP ===
+var p4Done=false;
+function animP4(){if(p4Done)return;p4Done=true;
+var cfg=MODES[MODE];
+var scoreEl=document.getElementById('p4S');var score=cfg.p4score;
+scoreEl.textContent=score.toFixed(1);
+gsap.to(scoreEl,{opacity:1,duration:.4,delay:.2,ease:'power2.out'});
+gsap.to('#p4P',{opacity:1,duration:.3,delay:.4});
+gsap.to('.p4-view-btn',{opacity:1,duration:.3,delay:.5});
+gsap.fromTo('#p4M',{opacity:0,y:-30},{opacity:1,y:0,duration:.4,delay:.5,ease:'back.out(1.5)'});
+setTimeout(function(){
+  // Tags row appears
+  var tagsRow=document.getElementById('p4TagsRow');
+  gsap.to(tagsRow,{opacity:1,duration:.4,ease:'power2.out'});
+  // After tags appear, fly to score
+  setTimeout(function(){
+    if(cfg.p4scoreDelta>0){
+      var p4info=document.querySelector('.p4-info');var sRect=scoreEl.getBoundingClientRect();var pRect=p4info.getBoundingClientRect();
+      var ex=sRect.left-pRect.left+sRect.width/2;var ey=sRect.top-pRect.top+sRect.height/2;
+      var tags=document.querySelectorAll('.p4-tg2');
+      tags.forEach(function(tag,i){
+        var tRect=tag.getBoundingClientRect();
+        var light=document.createElement('div');light.className='stream-light';p4info.appendChild(light);
+        gsap.set(light,{left:tRect.left-pRect.left+tRect.width/2,top:tRect.top-pRect.top+tRect.height/2,opacity:1});
+        gsap.to(light,{left:ex,top:ey,duration:.4,delay:i*.08,ease:'power2.in',onComplete:function(){
+          score=Math.round((score+cfg.p4scoreDelta)*10)/10;scoreEl.textContent=score.toFixed(1);
+          gsap.fromTo(scoreEl,{color:'#FFD700',textShadow:'0 0 25px rgba(255,215,0,.7)',scale:1.15},{color:'rgba(200,210,220,.6)',textShadow:'none',scale:1,duration:.5});
+          gsap.to(light,{opacity:0,scale:2.5,duration:.2,onComplete:function(){light.remove()}});
+        }});
+      });
+    }
+    // Medal transform
+    if(cfg.p4medalTo){
+      setTimeout(function(){var mi=document.getElementById('p4MedalImg');gsap.to(mi,{x:-3,duration:.04,repeat:10,yoyo:true,ease:'none',onComplete:function(){gsap.set(mi,{x:0});gsap.to(mi,{opacity:0,scale:1.4,duration:.12,onComplete:function(){mi.src='assets/medals/铜牌中路298x72.png';gsap.fromTo(mi,{opacity:0,scale:1.6},{opacity:1,scale:1,duration:.4,ease:'back.out(2)'});var pi=document.querySelector('.p4-info');var mr=mi.getBoundingClientRect();var pr=pi.getBoundingClientRect();for(var j=0;j<12;j++){var sp=document.createElement('div');sp.className='stream-light';sp.style.width='3px';sp.style.height='3px';pi.appendChild(sp);var a=Math.random()*Math.PI*2;var d=15+Math.random()*35;gsap.set(sp,{left:mr.left-pr.left+mr.width/2,top:mr.top-pr.top+mr.height/2,opacity:1});gsap.to(sp,{left:mr.left-pr.left+mr.width/2+Math.cos(a)*d,top:mr.top-pr.top+mr.height/2+Math.sin(a)*d,opacity:0,scale:0,duration:.5,ease:'power2.out',onComplete:function(){this.targets()[0].remove()}})}}})}}); },cfg.p4scoreDelta>0?700:100);
+    }
+    // Quest (恐怖草丛) appears after tags fly
+    setTimeout(function(){
+      var quests=document.querySelectorAll('.p4-q');
+      gsap.to(quests,{opacity:1,duration:.4,ease:'power2.out'});
+      gsap.to('#pqFill',{width:'40%',duration:.7,delay:.2,ease:'power2.out'});
+    },cfg.p4scoreDelta>0?600:200);
+  },600);
+},1000);
+// Flash + bar timing depends on mode
+var flashDelay=3500;
+if(MODE==='high')flashDelay=2000; // quests appear then bar immediately
+if(MODE==='newbie')flashDelay=800; // everything fast
+setTimeout(function(){
+  gsap.to(['#fl1','#fl2','#fl3','#fl4','#fl5'],{opacity:1,duration:.3});
+  gsap.fromTo('#p4Bar',{opacity:0,y:8},{opacity:1,y:0,duration:.4,delay:.3,ease:'power2.out'});
+  if(MODE==='low'){gsap.set('#barGold',{width:'60%'});gsap.to('#barGold',{width:'0%',duration:1,delay:.6,ease:'power2.inOut'});gsap.to('#barGold',{width:'40%',duration:1.2,delay:2,ease:'power2.out'})}
+  else{gsap.to('#barGold',{width:'100%',duration:1.5,delay:.6,ease:'power2.out'})}
+},flashDelay);
+gsap.to('#profF',{width:'49%',duration:.8,delay:1});
+}
+function showShare(){document.getElementById('shareOv').classList.add('show')}
+function hideShare(){document.getElementById('shareOv').classList.remove('show');document.querySelectorAll('.share-img').forEach(function(img){img.style.borderColor='transparent'});document.getElementById('shareBtn').style.display='none'}
+function selectShare(el){document.querySelectorAll('.share-img').forEach(function(img){img.style.borderColor='transparent'});el.style.borderColor='rgba(255,215,0,.8)';document.getElementById('shareBtn').style.display='block'}
+
+// P5 return mode
+function p5Next(){
+  var cfg=MODES[MODE];
+  if(cfg.hasReturn){
+    // Directly play rank up video
+    var rov=document.getElementById('rankupOv');rov.classList.add('show');
+    var vid=document.getElementById('rankupVideo');vid.currentTime=0;vid.play().catch(function(){});
+  }else{
+    nextPage();
+  }
+}
+function closeReturn(){document.getElementById('returnOv').classList.remove('show');nextPage()}
+function acceptReturn(){
+  document.getElementById('returnOv').classList.remove('show');
+  var rov=document.getElementById('rankupOv');rov.classList.add('show');
+  var vid=document.getElementById('rankupVideo');vid.currentTime=0;vid.play().catch(function(){});
+}
+function closeRankup(){
+  document.getElementById('rankupOv').classList.remove('show');
+  var vid=document.getElementById('rankupVideo');if(!vid.paused)vid.pause();
+  nextPage();
+}
+
+// === P5 GSAP ===
+var p5Done=false;
+function animP5(){if(p5Done)return;p5Done=true;
+var mc=document.getElementById('rMeteors');for(var i=0;i<8;i++){var m=document.createElement('div');m.className='r-m';m.style.left=(15+Math.random()*70)+'%';mc.appendChild(m);gsap.fromTo(m,{opacity:0,y:-80,rotation:-30},{opacity:1,y:400,duration:1+Math.random()*.5,delay:Math.random(),ease:'none',onComplete:function(){this.targets()[0].remove()}})}
+// Stars: 3 gold, 1 small diamond, 2 silver
+var sc=document.getElementById('rStars');
+var starDef=[{t:'\u2605',c:'gold'},{t:'\u2605',c:'gold'},{t:'\u2605',c:'gold'},{t:'\u2726',c:'gold small'},{t:'\u2605',c:'silver'},{t:'\u2605',c:'silver'}];
+starDef.forEach(function(sd,i){var s=document.createElement('span');s.className='r5-star '+sd.c;s.textContent=sd.t;sc.appendChild(s);gsap.to(s,{opacity:1,duration:.3,delay:.8+i*.12,ease:'back.out(2)'})});
+gsap.to('#rProgF',{width:'60%',duration:1.2,delay:1.5,ease:'power2.out'});
+gsap.fromTo('#rChange',{opacity:0,y:10},{opacity:1,y:0,duration:.4,delay:2,ease:'power2.out'});
+}
+
+// === P6 ===
+function buildStats(){var t=document.getElementById('s6Table');var h='<div class="s6-col">';BT.forEach(function(p,i){h+=sRow(p,'b',i,'bl')});h+='</div><div class="s6-col">';RT.forEach(function(p,i){h+=sRow(p,'r',i,'rd')});h+='</div>';t.innerHTML=h}
+function sRow(p,tm,i,cls){var k=tm+i;var mc=p.me?' me':'';var av=NA[p.av];var badges=p.mvp?'<div class="mvp">MVP</div>':'';
+// Left: avatar + medal
+var leftH='<div class="sr6-left"><div class="sr6-av"><img src="'+av+'">'+badges+'</div>';
+leftH+='<div class="sr6-medal-outer" onclick="showSDfromP6(\''+k+'\',event)" style="cursor:pointer">';
+if(p.mt==='gold'||p.mt==='silver'||p.mt==='bronze'||p.mt==='top'){var ms=gM(p.mt,p.rl);if(ms)leftH+='<img class="sr6-md" src="'+ms+'">';}else if(p.mt==='iron'){leftH+='<img class="sr6-ir" src="'+gM('iron',p.rl)+'">';}
+leftH+='</div></div>';
+// Mid: name + abilities (centered)
+var midH='<div class="sr6-mid" onclick="showSDfromP6(\''+k+'\',event)" style="cursor:pointer"><div class="sr6-nm">'+p.nm+'</div><div class="sr6-abs">';
+if(p.abs)p.abs.forEach(function(a){midH+='<img class="sr6-ab" src="'+gA(a.d,a.l)+'">'});
+midH+='</div></div>';
+// Right: scores + tags
+var rightH='<div class="sr6-right"><div class="sr6-r1"><div class="sr6-sc" id="sc_'+k+'">'+PS[k].toFixed(1)+'</div><div class="sr6-kda">'+p.kda+'</div><div class="sr6-gold">'+p.gd+'</div></div><div class="sr6-r2">';
+var tgCount=0;
+if(p.tgs)p.tgs.forEach(function(t){if(tgCount>=3)return;var cc=t.c==='tg'?'sg':(t.c==='tb'?'sb':'sgr');rightH+='<span class="sr6-tg '+cc+'" onclick="showSDfromP6(\''+k+'\',event)">'+t.t+'</span>';tgCount++});
+rightH+='</div></div>';
+// Actions
+var actH='<div class="sr6-actions"><div class="sr6-like" id="lk_'+k+'" onclick="event.stopPropagation();sLike(\''+k+'\')">'+TS+'</div><div class="sr6-sal" id="sl_'+k+'" onclick="event.stopPropagation();sSal(\''+k+'\')">致敬</div><div class="sr6-rsp" id="rsp_'+k+'">RSP</div></div>';
+return '<div class="sr6 '+cls+mc+'">'+leftH+midH+rightH+actH+'</div>'}
+function spawnParticles(fromEl,toEl,color,count){
+  var p6=document.getElementById('p6');
+  var fR=fromEl.getBoundingClientRect();var tR=toEl.getBoundingClientRect();
+  var pR=p6.getBoundingClientRect();
+  var sx=fR.left-pR.left+fR.width/2;var sy=fR.top-pR.top+fR.height/2;
+  var ex=tR.left-pR.left+tR.width/2;var ey=tR.top-pR.top+tR.height/2;
+  for(var i=0;i<count;i++){
+    (function(idx){
+      var pt=document.createElement('div');pt.className='s6-particle '+color;
+      p6.appendChild(pt);
+      var ox=(Math.random()-.5)*24;var oy=(Math.random()-.5)*24;
+      var startX=sx+ox;var startY=sy+oy;
+      var sz=3+Math.random()*3;pt.style.width=sz+'px';pt.style.height=sz+'px';
+      // Control point for curve
+      var cpx=(startX+ex)/2+(Math.random()-.5)*50;
+      var cpy=Math.min(startY,ey)-20-Math.random()*30;
+      var prog={t:0};
+      gsap.set(pt,{left:startX,top:startY,opacity:1,scale:1});
+      gsap.to(prog,{
+        t:1,duration:.5+Math.random()*.3,delay:idx*.03,ease:'power2.in',
+        onUpdate:function(){
+          var t=prog.t;var mt=1-t;
+          var px=mt*mt*startX+2*mt*t*cpx+t*t*ex;
+          var py=mt*mt*startY+2*mt*t*cpy+t*t*ey;
+          gsap.set(pt,{left:px,top:py,scale:1-t*.7,opacity:1-t*.4});
+          // Trail dot
+          if(Math.random()>.5){
+            var tr=document.createElement('div');tr.className='s6-trail';
+            tr.style.background=color==='blue'?'rgba(79,195,247,.4)':'rgba(255,215,0,.4)';
+            gsap.set(tr,{left:px,top:py});p6.appendChild(tr);
+            gsap.to(tr,{opacity:0,scale:0,duration:.25,onComplete:function(){tr.remove()}});
+          }
+        },
+        onComplete:function(){
+          gsap.to(pt,{scale:2.5,opacity:0,duration:.15,onComplete:function(){pt.remove()}});
+        }
+      });
+    })(i);
+  }
+}
+function sLike(k){var b=document.getElementById('lk_'+k);if(b.classList.contains('liked'))return;b.classList.add('liked');PS[k]=Math.round((PS[k]+.1)*10)/10;var s=document.getElementById('sc_'+k);
+// Spawn particles from button to score
+spawnParticles(b,s,'blue',8);
+setTimeout(function(){
+  s.textContent=PS[k].toFixed(1);
+  gsap.fromTo(s,{color:'#4FC3F7',textShadow:'0 0 14px rgba(79,195,247,.8)',scale:1.5},{color:'rgba(200,210,220,.5)',textShadow:'none',scale:1,duration:.7,ease:'power2.out'});
+},500);
+setTimeout(function(){b.style.display='none';var sl=document.getElementById('sl_'+k);sl.style.display='flex'},800)}
+
+function sSal(k){var sl=document.getElementById('sl_'+k);PS[k]=Math.round((PS[k]+.3)*10)/10;var s=document.getElementById('sc_'+k);
+// Spawn more particles for salute (gold, more count)
+spawnParticles(sl,s,'gold',14);
+setTimeout(function(){
+  s.textContent=PS[k].toFixed(1);
+  gsap.fromTo(s,{color:'#FFD700',textShadow:'0 0 18px rgba(255,215,0,.9)',scale:1.6},{color:'rgba(200,210,220,.5)',textShadow:'none',scale:1,duration:.8,ease:'power2.out'});
+},600);
+setTimeout(function(){sl.style.display='none';var rsp=document.getElementById('rsp_'+k);rsp.style.display='flex';rsp.style.justifyContent='center';rsp.style.alignItems='center';gsap.fromTo(rsp,{opacity:0,scale:.5},{opacity:1,scale:1,duration:.4,ease:'back.out(2)'})},700)}
+
+// EQUIP
+function showEq(){var o=document.getElementById('eqOv');if(o.classList.contains('show')){o.classList.remove('show');return}
+var h='<div class="s6-hdr" style="margin-bottom:4px"><div class="s6-banner"><span class="s6-ts bl">12</span><span class="s6-vl">胜 利</span><span class="s6-ts rd">35</span></div></div><div class="s6-cols"><div class="s6-col">';
+BT.forEach(function(p,i){h+=eqRow(p,'b',i,'bl')});h+='</div><div class="s6-col">';
+RT.forEach(function(p,i){h+=eqRow(p,'r',i,'rd')});h+='</div></div><div class="s6-bot"><button class="s6-btn s6-sec" onclick="event.stopPropagation();document.getElementById(\'eqOv\').classList.remove(\'show\')">返回</button></div>';o.innerHTML=h;o.classList.add('show')}
+function eqRow(p,tm,i,cls){var k=tm+i;var mc=p.me?' me':'';var av=NA[p.av];var badges=p.mvp?'<div class="mvp">MVP</div>':'';
+// Left: avatar + medal (same as sRow)
+var leftH='<div class="sr6-left"><div class="sr6-av"><img src="'+av+'">'+badges+'</div>';
+leftH+='<div class="sr6-medal-outer">';
+if(p.mt==='gold'||p.mt==='silver'||p.mt==='bronze'||p.mt==='top'){var ms=gM(p.mt,p.rl);if(ms)leftH+='<img class="sr6-md" src="'+ms+'">';}else if(p.mt==='iron'){leftH+='<img class="sr6-ir" src="'+gM('iron',p.rl)+'">';}
+leftH+='</div></div>';
+// Mid: name only (no abilities)
+var midH='<div class="sr6-mid"><div class="sr6-nm">'+p.nm+'</div></div>';
+// Right: score + KDA + gold on r1, equip icons on r2
+var rightH='<div class="sr6-right"><div class="sr6-r1"><div class="sr6-sc">'+PS[k].toFixed(1)+'</div><div class="sr6-kda">'+p.kda+'</div><div class="sr6-gold">'+p.gd+'</div></div><div class="sr6-r2" style="gap:2px">';
+if(p.eq)p.eq.forEach(function(e){rightH+='<div class="eq-it" style="width:18px;height:18px;border-radius:2px;overflow:hidden;border:1px solid rgba(100,160,220,.1);background:rgba(20,40,80,.3)"><img src="'+gE(e)+'" style="width:100%;height:100%;object-fit:cover"></div>'});
+rightH+='</div></div>';
+// Actions placeholder (empty, same width for alignment)
+var actH='<div class="sr6-actions" style="width:27px"></div>';
+return '<div class="sr6 '+cls+mc+'" style="position:relative">'+leftH+midH+rightH+actH+'</div>'}
+
+init();
+</script>
+</body>
+</html>
