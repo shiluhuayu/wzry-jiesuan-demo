@@ -633,7 +633,7 @@ function drawRadar(canvas,data,ref){
   }
 }
 
-function buildSDContent(p,k,sd){
+function buildSDContent(p,k,sd,canvasId){
   var medalH='';
   if(p.mt==='gold'||p.mt==='silver'||p.mt==='bronze'||p.mt==='top'){var ms=gM(p.mt,p.rl);if(ms)medalH='<img src="'+ms+'">';}
   else if(p.mt==='iron')medalH='<img src="'+gM('iron',p.rl)+'">';
@@ -655,7 +655,7 @@ function buildSDContent(p,k,sd){
   if(p.abs&&p.abs.length>=2){
     h+='<div class="sd-ability"><img src="'+gA(p.abs[1].d,p.abs[1].l)+'"><div class="sd-ability-label">'+p.abs[1].d+'</div></div>';
   }
-  h+='<div class="sd-radar"><canvas id="sdCanvas_'+k+'" width="120" height="120"></canvas></div>';
+  h+='<div class="sd-radar"><canvas id="'+canvasId+'" width="120" height="120"></canvas></div>';
   // Right ability
   if(p.abs&&p.abs.length>=3){
     h+='<div class="sd-ability"><img src="'+gA(p.abs[2].d,p.abs[2].l)+'"><div class="sd-ability-label">'+p.abs[2].d+'</div></div>';
@@ -675,10 +675,11 @@ function showSDfromP4(e){
   var p=BT[1]; // me player
   var k=P4_KEY;
   var sd=SD_DATA[k];
-  ov.innerHTML=buildSDContent(p,'p4_'+k,sd);
+  var cid='sdCanvas_p4_'+k;
+  ov.innerHTML=buildSDContent(p,k,sd,cid);
   ov.classList.add('show');
   ov.onclick=function(ev){if(ev.target===ov)ov.classList.remove('show')};
-  setTimeout(function(){var cv=document.getElementById('sdCanvas_p4_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
+  setTimeout(function(){var cv=document.getElementById(cid);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
 }
 function showSDfromP6(k,e){
   e.stopPropagation();
@@ -687,10 +688,11 @@ function showSDfromP6(k,e){
   var idx=parseInt(k.charAt(1));
   var p=isBT?BT[idx]:RT[idx];
   var sd=SD_DATA[k];
-  ov.innerHTML=buildSDContent(p,'p6_'+k,sd);
+  var cid='sdCanvas_p6_'+k;
+  ov.innerHTML=buildSDContent(p,k,sd,cid);
   ov.classList.add('show');
   ov.onclick=function(ev){if(ev.target===ov)ov.classList.remove('show')};
-  setTimeout(function(){var cv=document.getElementById('sdCanvas_p6_'+k);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
+  setTimeout(function(){var cv=document.getElementById(cid);if(cv)drawRadar(cv,sd.radar,sd.ref)},50);
 }
 function closeSD(el){el.closest('.sd-ov').classList.remove('show')}
 
